@@ -1,11 +1,13 @@
 package txt
 
 import (
+	"io/ioutil"
 	"runtime"
 	"strings"
 	"testing"
 
 	"github.com/jayacarlson/dbg"
+	"github.com/jayacarlson/pth"
 )
 
 var (
@@ -175,4 +177,92 @@ func TestVariableReplacementB(t *testing.T) {
 		dbg.Caution("Expected Error  >%s<", expErr)
 		dbg.Error("Resulting Error >%v<", resErr)
 	}
+}
+
+func TestUnicodeCorrection(t *testing.T) {
+	testString := `Test \u0031 \u0026 \u0032 then some letters \u00c1 \u00e1 \u00e2 \u00e3 \u00e4 \u00e5 \u00c9 \u00e8 \u00e9 \u00ea \u00eb \u00ed \u00ee \u00ef \u00d3 \u00d8 \u00f8 \u00f3 \u00f4 \u00f6 \u00f9 \u00fa \u00fc \u00e7 \u00f1`
+	expected := `Test 1 & 2 then some letters Á á â ã ä å É è é ê ë í î ï Ó Ø ø ó ô ö ù ú ü ç ñ`
+	result := FixUnicodeEscapedText(testString)
+	if result != expected {
+		t.Fail()
+		dbg.Danger("Test Failure in: %s", iAm())
+		dbg.Info("Expected >%s<", expected)
+		dbg.Error("Result   >%s<", result)
+	}
+}
+
+const (
+	blk1 = `
+block1 blah blah
+blah blah blah`
+	blk2 = `
+block2 blah blah
+blah blah blah`
+	blk3 = `block3 blah blah
+blah blah blah`
+	dta1 = `apple
+banana
+cherry
+date
+{ }
+} {
+fig
+grape`
+	dta2 = `apple
+banana
+cherry
+date
+fig
+grape`
+)
+
+func TestBlockConfig(t *testing.T) {
+	conf, err := ioutil.ReadFile(pth.AsRealPath("$/testdata/testBlocks.txt"))
+	dbg.ChkErrX(err, "Failed to read config file", t.Fail)
+
+	HandleConfigBlocks(string(conf), func(l, d string) {
+		switch l {
+		case "block1":
+			if d != blk1 {
+				dbg.Error("block1:\n<%s>", d)
+				t.Fail()
+			}
+		case "block2":
+			if d != blk2 {
+				dbg.Error("block2:\n<%s>", d)
+				t.Fail()
+			}
+		case "block3":
+			if d != blk3 {
+				dbg.Error("block3:\n<%s>", d)
+				t.Fail()
+			}
+		default:
+			if l != "unknownBlock" {
+				dbg.Error("Unknown block: %s", l)
+				t.Fail()
+			}
+
+		}
+	})
+
+	HandleConfigData(string(conf), func(l, d string) {
+		switch l {
+		case "data1":
+			if d != dta1 {
+				dbg.Error("data1:\n%s", d)
+				t.Fail()
+			}
+		case "data2":
+			fd := ListToSepString(d, "\n")
+			if fd != dta2 {
+				dbg.Error("data2:\n%s", d)
+				t.Fail()
+			}
+		default:
+			dbg.Error("Unknown block: %s", l)
+			t.Fail()
+
+		}
+	})
 }
