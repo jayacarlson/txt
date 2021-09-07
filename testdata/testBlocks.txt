@@ -1,0 +1,53 @@
+Anything outside a config block is ignored.
+
+Config block label must start the line
+
+Care must be taken when using the same file for ConfigData and
+ConfigBlock as the parser will get confused mixing delimiters
+
+ConfigData can have an optional data delimiter, one of ',;:|/'
+identified by placing it after the block label
+
+Inside a ConfigData:
+	Any lines starting with the '#' are stripped allowing commented text
+	Whitespace around the text is stripped
+	Empty lines are ignored / stripped
+
+block1 <
+block1 blah blah
+blah blah blah
+>
+
+block2 <
+block2 blah blah
+blah blah blah
+>
+
+block3 <block3 blah blah
+blah blah blah
+>
+
+unknownBlock <
+unknownBlock blah blah
+blah blah blax
+>
+
+
+data1 {
+	apple
+	banana
+	cherry
+	date
+	# elephant
+	{ }
+	} {
+	fig
+	grape
+}
+
+data2 , {
+	apple, banana
+	cherry, date
+	# elephant
+	fig, grape
+}
