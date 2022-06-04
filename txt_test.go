@@ -1,13 +1,9 @@
 package txt
 
 import (
-	"io/ioutil"
-	"runtime"
-	"strings"
 	"testing"
 
 	"github.com/jayacarlson/dbg"
-	"github.com/jayacarlson/pth"
 )
 
 var (
@@ -34,11 +30,19 @@ func init() {
 	variables["phone"] = "Phone-Result"
 }
 
-func iAm() string {
-	pc := make([]uintptr, 4)
-	runtime.Callers(2, pc)
-	nm := runtime.FuncForPC(pc[0]).Name()
-	return nm[strings.LastIndex(nm, ".")+1:]
+func compareEntries(a, b []string) bool {
+	if len(a) != len(b) {
+		dbg.Error("Mismatch in slice lengths")
+		return false
+	}
+	for i := 0; i < len(a); i++ {
+		if a[i] != b[i] {
+			dbg.Error("Mismatch in entries: a(%s)  b(%s)", a[i], b[i])
+			return false
+		}
+	}
+
+	return true
 }
 
 func TestRuneizer(t *testing.T) {
@@ -55,14 +59,15 @@ func TestRuneizer(t *testing.T) {
 		// -     ‘     ’     “     ”     •     –     —
 		0x98, 0x99, 0x9a, 0x9b, 0x9c, 0x9d, 0x9e, 0x9f,
 		// ˜     ™     š     ›     œ     -     ž     Ÿ
-
 		0xa0, 0xa1, 0xa2, 0xa3, 0xa4, 0xa5, 0xa6, 0xa7,
+		//  ¡     ¢     £     ¤     ¥     ¦     §
 		0xa8, 0xa9, 0xaa, 0xab, 0xac, 0xad, 0xae, 0xaf,
+		// ¨     ©     ª     «     ¬     -     ®     ¯
 	}
 	result := Latin1Runeizer(string(text))
 	if result != expected {
 		t.Fail()
-		dbg.Danger("Test Failure in: %s", iAm())
+		dbg.Danger("Test Failure in: %s", dbg.IAm())
 		dbg.Info("Expected >%s<", expected)
 		dbg.Error("Result   >%s<", result)
 	}
@@ -79,7 +84,7 @@ func TestCleanSpaces(t *testing.T) {
 	result := CleanSpaces(text)
 	if result != expected {
 		t.Fail()
-		dbg.Danger("Test Failure in: %s", iAm())
+		dbg.Danger("Test Failure in: %s", dbg.IAm())
 		dbg.Info("Expected >%s<", expected)
 		dbg.Error("Result   >%s<", result)
 	}
@@ -90,7 +95,7 @@ func TestTrimDot0sA(t *testing.T) {
 	result := TrimDot0s("3.20000")
 	if result != expected {
 		t.Fail()
-		dbg.Danger("Test Failure in: %s", iAm())
+		dbg.Danger("Test Failure in: %s", dbg.IAm())
 		dbg.Info("Expected >%s<", expected)
 		dbg.Error("Result   >%s<", result)
 	}
@@ -101,7 +106,7 @@ func TestTrimDot0sB(t *testing.T) {
 	result := TrimDot0s("3")
 	if result != expected {
 		t.Fail()
-		dbg.Danger("Test Failure in: %s", iAm())
+		dbg.Danger("Test Failure in: %s", dbg.IAm())
 		dbg.Info("Expected >%s<", expected)
 		dbg.Error("Result   >%s<", result)
 	}
@@ -112,7 +117,63 @@ func TestTrimDot0sC(t *testing.T) {
 	result := TrimDot0s("-0.0000")
 	if result != expected {
 		t.Fail()
-		dbg.Danger("Test Failure in: %s", iAm())
+		dbg.Danger("Test Failure in: %s", dbg.IAm())
+		dbg.Info("Expected >%s<", expected)
+		dbg.Error("Result   >%s<", result)
+	}
+}
+
+func TestFltTrimDot0sA(t *testing.T) {
+	expected := "3.2"
+	result := FltTrimDot0s(3.20000)
+	if result != expected {
+		t.Fail()
+		dbg.Danger("Test Failure in: %s", dbg.IAm())
+		dbg.Info("Expected >%s<", expected)
+		dbg.Error("Result   >%s<", result)
+	}
+}
+
+func TestFltTrimDot0sB(t *testing.T) {
+	expected := "3"
+	result := FltTrimDot0s(3)
+	if result != expected {
+		t.Fail()
+		dbg.Danger("Test Failure in: %s", dbg.IAm())
+		dbg.Info("Expected >%s<", expected)
+		dbg.Error("Result   >%s<", result)
+	}
+}
+
+func TestFltTrimDot0sC(t *testing.T) {
+	expected := "0"
+	result := FltTrimDot0s(-0.0000)
+	if result != expected {
+		t.Fail()
+		dbg.Danger("Test Failure in: %s", dbg.IAm())
+		dbg.Info("Expected >%s<", expected)
+		dbg.Error("Result   >%s<", result)
+	}
+}
+
+func TestFixUnicodeA(t *testing.T) {
+	testString := `Test \u0031 \u0026 \u0032 then some letters \u00c1 \u00e1 \u00e2 \u00e3 \u00e4 \u00e5 \u00c9 \u00e8 \u00e9 \u00ea \u00eb \u00ed \u00ee \u00ef \u00d3 \u00d8 \u00f8 \u00f3 \u00f4 \u00f6 \u00f9 \u00fa \u00fc \u00e7 \u00f1`
+	expected := `Test 1 & 2 then some letters Á á â ã ä å É è é ê ë í î ï Ó Ø ø ó ô ö ù ú ü ç ñ`
+	result := FixUnicodeEscapedText(testString)
+	if result != expected {
+		t.Fail()
+		dbg.Danger("Test Failure in: %s", dbg.IAm())
+		dbg.Info("Expected >%s<", expected)
+		dbg.Error("Result   >%s<", result)
+	}
+}
+
+func TestFixUnicodeB(t *testing.T) {
+	expected := "New Š†ûƒƒ From BlåhCo™"
+	result := FixUnicodeEscapedText("New \u0160\u2020\u00fb\u0192\u0192 From Bl\u00e5hCo\u2122")
+	if result != expected {
+		t.Fail()
+		dbg.Danger("Test Failure in: %s", dbg.IAm())
 		dbg.Info("Expected >%s<", expected)
 		dbg.Error("Result   >%s<", result)
 	}
@@ -123,7 +184,7 @@ func TestTokenizerA(t *testing.T) {
 	result, _ := tokens.DeTokenize(templateT)
 	if result != expected {
 		t.Fail()
-		dbg.Danger("Test Failure in: %s", iAm())
+		dbg.Danger("Test Failure in: %s", dbg.IAm())
 		dbg.Info("Expected >%s<", expected)
 		dbg.Error("Result   >%s<", result)
 	}
@@ -135,13 +196,13 @@ func TestTokenizerB(t *testing.T) {
 	result, resErr := tokens.DeTokenize(templateTBad)
 	if result != expected {
 		t.Fail()
-		dbg.Danger("Test Failure in: %s", iAm())
+		dbg.Danger("Test Failure in: %s", dbg.IAm())
 		dbg.Info("Expected >%s<", expected)
 		dbg.Error("Result   >%s<", result)
 	}
 	if resErr.Error() != expErr {
 		t.Fail()
-		dbg.Danger("Test Failure in: %s", iAm())
+		dbg.Danger("Test Failure in: %s", dbg.IAm())
 		dbg.Caution("Expected Error  >%s<", expErr)
 		dbg.Error("Resulting Error >%v<", resErr)
 	}
@@ -153,7 +214,7 @@ func TestVariableReplacementA(t *testing.T) {
 	result, _ := variables.ReplaceVars(templateV)
 	if result != expected {
 		t.Fail()
-		dbg.Danger("Test Failure in: %s", iAm())
+		dbg.Danger("Test Failure in: %s", dbg.IAm())
 		dbg.Info("Expected >%s<", expected)
 		dbg.Error("Result   >%s<", result)
 	}
@@ -167,102 +228,62 @@ func TestVariableReplacementB(t *testing.T) {
 	result, resErr := variables.ReplaceVars(templateVBad)
 	if result != expected {
 		t.Fail()
-		dbg.Danger("Test Failure in: %s", iAm())
+		dbg.Danger("Test Failure in: %s", dbg.IAm())
 		dbg.Info("Expected >%s<", expected)
 		dbg.Error("Result   >%s<", result)
 	}
 	if resErr.Error() != expErr {
 		t.Fail()
-		dbg.Danger("Test Failure in: %s", iAm())
+		dbg.Danger("Test Failure in: %s", dbg.IAm())
 		dbg.Caution("Expected Error  >%s<", expErr)
 		dbg.Error("Resulting Error >%v<", resErr)
 	}
 }
 
-func TestUnicodeCorrection(t *testing.T) {
-	testString := `Test \u0031 \u0026 \u0032 then some letters \u00c1 \u00e1 \u00e2 \u00e3 \u00e4 \u00e5 \u00c9 \u00e8 \u00e9 \u00ea \u00eb \u00ed \u00ee \u00ef \u00d3 \u00d8 \u00f8 \u00f3 \u00f4 \u00f6 \u00f9 \u00fa \u00fc \u00e7 \u00f1`
-	expected := `Test 1 & 2 then some letters Á á â ã ä å É è é ê ë í î ï Ó Ø ø ó ô ö ù ú ü ç ñ`
-	result := FixUnicodeEscapedText(testString)
-	if result != expected {
+func TestListToStringSlice(t *testing.T) {
+	expected := []string{"name1", "name2", "name3", "name4", "name5", "name6"}
+	result := ListToStringSlice(`name1
+								name2
+
+name3
+name4
+   name5
+   name6`)
+	if !compareEntries(expected, result) {
 		t.Fail()
-		dbg.Danger("Test Failure in: %s", iAm())
+		dbg.Danger("Test Failure in: %s", dbg.IAm())
 		dbg.Info("Expected >%s<", expected)
 		dbg.Error("Result   >%s<", result)
 	}
 }
 
-const (
-	blk1 = `
-block1 blah blah
-blah blah blah`
-	blk2 = `
-block2 blah blah
-blah blah blah`
-	blk3 = `block3 blah blah
-blah blah blah`
-	dta1 = `apple
-banana
-cherry
-date
-{ }
-} {
-fig
-grape`
-	dta2 = `apple
-banana
-cherry
-date
-fig
-grape`
-)
+func TestSepListToStringSlice(t *testing.T) {
+	expected := []string{"name1", "name2", "name3", "name4", "name5", "name6"}
+	result := SepListToStringSlice(`name1
+			name2,  name3
+name4,		name5
+   name6`, ",")
+	if !compareEntries(expected, result) {
+		t.Fail()
+		dbg.Danger("Test Failure in: %s", dbg.IAm())
+		dbg.Info("Expected >%s<", expected)
+		dbg.Error("Result   >%s<", result)
+	}
+}
 
-func TestBlockConfig(t *testing.T) {
-	conf, err := ioutil.ReadFile(pth.AsRealPath("$/testdata/testBlocks.txt"))
-	dbg.ChkErrX(err, "Failed to read config file", t.Fail)
+func TestListToSepString(t *testing.T) {
+	expected := "name1, name2, name3, name4, name5, name6"
+	result := ListToSepString(`name1
+								name2
 
-	HandleConfigBlocks(string(conf), func(l, d string) {
-		switch l {
-		case "block1":
-			if d != blk1 {
-				dbg.Error("block1:\n<%s>", d)
-				t.Fail()
-			}
-		case "block2":
-			if d != blk2 {
-				dbg.Error("block2:\n<%s>", d)
-				t.Fail()
-			}
-		case "block3":
-			if d != blk3 {
-				dbg.Error("block3:\n<%s>", d)
-				t.Fail()
-			}
-		default:
-			if l != "unknownBlock" {
-				dbg.Error("Unknown block: %s", l)
-				t.Fail()
-			}
-
-		}
-	})
-
-	HandleConfigData(string(conf), func(l, d string) {
-		switch l {
-		case "data1":
-			if d != dta1 {
-				dbg.Error("data1:\n%s", d)
-				t.Fail()
-			}
-		case "data2":
-			fd := ListToSepString(d, "\n")
-			if fd != dta2 {
-				dbg.Error("data2:\n%s", d)
-				t.Fail()
-			}
-		default:
-			dbg.Error("Unknown block: %s", l)
-			t.Fail()
-
-		}
-	})
+name3
+name4
+   name5
+   name6`, ", ")
+	if expected != result {
+		t.Fail()
+		dbg.Danger("Test Failure in: %s", dbg.IAm())
+		dbg.Info("Expected >%s<", expected)
+		dbg.Error("Result   >%s<", result)
+	}
 }
